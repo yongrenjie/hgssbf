@@ -1,0 +1,2263 @@
+<!DOCTYPE html>
+
+<head>
+	<title>orthocresol's PtHGSS Battle Factory Damage Calculator</title>
+<link rel="stylesheet" type="text/css" href="hgssbf.css">
+<link rel="stylesheet" href="jquery-ui.css" />
+<script src="hgssbf.js"></script>
+<script src="jquery-2.0.3.js"></script>
+<script src="jquery-ui.js"></script>
+<script>
+(function( $ ) {
+     $.widget( "ui.combobox", {
+         _create: function() {
+             var self = this,
+                 select = this.element.hide(),
+                 selected = select.children( ":selected" ),
+                 value = selected.val() ? selected.text() : "";
+             var input = this.input = $( "<input>" )
+                 .insertAfter( select )
+                 .val( value )
+                 .autocomplete({
+                     delay: 0,
+                     minLength: 0,
+                     source: function( request, response ) {
+                         var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
+                         response( select.children( "option" ).map(function() {
+                             var text = $( this ).text();
+                             if ( this.value && ( !request.term || matcher.test(text) ) )
+                                 return {
+									 label: text,
+                                     /*label: text.replace(
+                                         new RegExp(
+                                             "(?![^&;]+;)(?!<[^<>]*)(" +
+                                             $.ui.autocomplete.escapeRegex(request.term) +
+                                             ")(?![^<>]*>)(?![^&;]+;)", "gi"
+                                         ), "<strong>$1</strong>" ),
+										 */
+                                     value: text,
+                                     option: this
+                                 };
+                         }) );
+                     },
+                     select: function( event, ui ) {
+                         ui.item.option.selected = true;
+                         self._trigger( "selected", event, {
+                             item: ui.item.option
+                         });
+                         select.trigger("change");                             
+                     },
+                     change: function( event, ui ) {
+                         if ( !ui.item ) {
+                             var matcher = new RegExp( "^" + $.ui.autocomplete.escapeRegex( $(this).val() ) + "$", "i" ),
+                                 valid = false;
+                             select.children( "option" ).each(function() {
+                                 if ( $( this ).text().match( matcher ) ) {
+                                     this.selected = valid = true;
+                                     return false;
+                                 }
+                             });
+                             if ( !valid ) {
+                                 // remove invalid value, as it didn't match anything
+                                 $( this ).val( "" );
+                                 select.val( "" );
+                                 return false;
+                             }
+                         }
+                     }
+                 })
+                 .addClass( "ui-widget ui-widget-content ui-corner-left" );
+
+
+             this.button = $( "<button type='button'>&nbsp;</button>" )
+                 .attr( "tabIndex", -1 )
+                 .attr( "title", "Show all items" )
+                 .insertAfter( input )
+                 .button({
+                     icons: {
+                         primary: "ui-icon-triangle-1-s"
+                     },
+                     text: false
+                 })
+                 .removeClass( "ui-corner-all" )
+                 .addClass( "ui-corner-right ui-button-icon" )
+                 .click(function() {
+                     // close if already visible
+                     if ( input.autocomplete( "widget" ).is( ":visible" ) ) {
+                         input.autocomplete( "close" );
+                         return;
+                     }
+
+                     // pass empty string as value to search for, displaying all results
+					 else{
+	                     input.autocomplete( "search", "" );
+	                     input.focus();
+					 }
+                 });
+         },
+
+         destroy: function() {
+             this.input.remove();
+             this.button.remove();
+             this.element.show();
+             $.Widget.prototype.destroy.call( this );
+         }
+     });
+ })( jQuery );
+
+ $(function() {
+     $( "#attacker" ).combobox();
+	 $( "#defender" ).combobox();
+     $( "#toggle" ).click(function() {
+         $( "#combobox" ).toggle();
+     });
+ });
+
+</script>
+</head>
+
+
+<body>
+<div class="main">
+<p class="title"><img src="latias.gif">orthocresol's PtHGSS Battle Factory Damage Calculator, v1.0<img src="latios.gif"></p>
+
+<p class="subtitle">Single Battle, Open Level</p>
+
+<form name="dc">
+<div class="conditions">
+	Wave Number: <select name="wave" id="wave" onchange="changeWave()">
+		<option value="wave1">1</option>
+		<option value="wave2">2</option>
+		<option value="wave3">3</option>
+		<option value="wave4">4</option>
+		<option value="wave5">5</option>
+		<option value="wave6">6</option>
+		<option value="wave7">7</option>
+		<option value="wave8">8+</option>
+	</select>
+	Weather: <select name="weather" id="weather" onchange="damageCalc()">
+		<option value="none">None</option>
+		<option value="sun">Sun</option>
+		<option value="rain">Rain</option>
+		<option value="sandstorm">Sandstorm</option>
+		<option value="hail">Hail</option>
+	</select>
+	Trick Room: <input type="checkbox" name="trickroom" onclick="damageCalc()"></input>
+</div>
+<div class="mons">
+<div class="atkmon">
+	Reflect: <input type="checkbox" name="reflect1" onclick="damageCalc()"></input>
+	Light Screen: <input type="checkbox" name="lightscreen1" onclick="damageCalc()"></input><br />
+	
+<span class="textbf">Your Pokemon:</span> <select id="attacker" onchange="selAtk(this.value)">
+<option value=""> </option>
+<option value="abomasnow1">Abomasnow 1</option>
+<option value="abomasnow2">Abomasnow 2</option>
+<option value="abomasnow3">Abomasnow 3</option>
+<option value="abomasnow4">Abomasnow 4</option>
+<option value="absol1">Absol 1</option>
+<option value="absol2">Absol 2</option>
+<option value="absol3">Absol 3</option>
+<option value="absol4">Absol 4</option>
+<option value="aerodactyl1">Aerodactyl 1</option>
+<option value="aerodactyl2">Aerodactyl 2</option>
+<option value="aerodactyl3">Aerodactyl 3</option>
+<option value="aerodactyl4">Aerodactyl 4</option>
+<option value="aggron1">Aggron 1</option>
+<option value="aggron2">Aggron 2</option>
+<option value="aggron3">Aggron 3</option>
+<option value="aggron4">Aggron 4</option>
+<option value="alakazam1">Alakazam 1</option>
+<option value="alakazam2">Alakazam 2</option>
+<option value="alakazam3">Alakazam 3</option>
+<option value="alakazam4">Alakazam 4</option>
+<option value="altaria1">Altaria 1</option>
+<option value="altaria2">Altaria 2</option>
+<option value="altaria3">Altaria 3</option>
+<option value="altaria4">Altaria 4</option>
+<option value="ambipom1">Ambipom 1</option>
+<option value="ambipom2">Ambipom 2</option>
+<option value="ambipom3">Ambipom 3</option>
+<option value="ambipom4">Ambipom 4</option>
+<option value="ampharos1">Ampharos 1</option>
+<option value="ampharos2">Ampharos 2</option>
+<option value="ampharos3">Ampharos 3</option>
+<option value="ampharos4">Ampharos 4</option>
+<option value="arcanine1">Arcanine 1</option>
+<option value="arcanine2">Arcanine 2</option>
+<option value="arcanine3">Arcanine 3</option>
+<option value="arcanine4">Arcanine 4</option>
+<option value="armaldo1">Armaldo 1</option>
+<option value="armaldo2">Armaldo 2</option>
+<option value="armaldo3">Armaldo 3</option>
+<option value="armaldo4">Armaldo 4</option>
+<option value="articuno1">Articuno 1</option>
+<option value="articuno2">Articuno 2</option>
+<option value="articuno3">Articuno 3</option>
+<option value="articuno4">Articuno 4</option>
+<option value="bastiodon1">Bastiodon 1</option>
+<option value="bastiodon2">Bastiodon 2</option>
+<option value="bastiodon3">Bastiodon 3</option>
+<option value="bastiodon4">Bastiodon 4</option>
+<option value="blastoise1">Blastoise 1</option>
+<option value="blastoise2">Blastoise 2</option>
+<option value="blastoise3">Blastoise 3</option>
+<option value="blastoise4">Blastoise 4</option>
+<option value="blaziken1">Blaziken 1</option>
+<option value="blaziken2">Blaziken 2</option>
+<option value="blaziken3">Blaziken 3</option>
+<option value="blaziken4">Blaziken 4</option>
+<option value="blissey1">Blissey 1</option>
+<option value="blissey2">Blissey 2</option>
+<option value="blissey3">Blissey 3</option>
+<option value="blissey4">Blissey 4</option>
+<option value="breloom1">Breloom 1</option>
+<option value="breloom2">Breloom 2</option>
+<option value="breloom3">Breloom 3</option>
+<option value="breloom4">Breloom 4</option>
+<option value="bronzong1">Bronzong 1</option>
+<option value="bronzong2">Bronzong 2</option>
+<option value="bronzong3">Bronzong 3</option>
+<option value="bronzong4">Bronzong 4</option>
+<option value="charizard1">Charizard 1</option>
+<option value="charizard2">Charizard 2</option>
+<option value="charizard3">Charizard 3</option>
+<option value="charizard4">Charizard 4</option>
+<option value="claydol1">Claydol 1</option>
+<option value="claydol2">Claydol 2</option>
+<option value="claydol3">Claydol 3</option>
+<option value="claydol4">Claydol 4</option>
+<option value="cradily1">Cradily 1</option>
+<option value="cradily2">Cradily 2</option>
+<option value="cradily3">Cradily 3</option>
+<option value="cradily4">Cradily 4</option>
+<option value="cresselia1">Cresselia 1</option>
+<option value="cresselia2">Cresselia 2</option>
+<option value="cresselia3">Cresselia 3</option>
+<option value="cresselia4">Cresselia 4</option>
+<option value="crobat1">Crobat 1</option>
+<option value="crobat2">Crobat 2</option>
+<option value="crobat3">Crobat 3</option>
+<option value="crobat4">Crobat 4</option>
+<option value="dewgong1">Dewgong 1</option>
+<option value="dewgong2">Dewgong 2</option>
+<option value="dewgong3">Dewgong 3</option>
+<option value="dewgong4">Dewgong 4</option>
+<option value="donphan1">Donphan 1</option>
+<option value="donphan2">Donphan 2</option>
+<option value="donphan3">Donphan 3</option>
+<option value="donphan4">Donphan 4</option>
+<option value="dragonite1">Dragonite 1</option>
+<option value="dragonite2">Dragonite 2</option>
+<option value="dragonite3">Dragonite 3</option>
+<option value="dragonite4">Dragonite 4</option>
+<option value="drapion1">Drapion 1</option>
+<option value="drapion2">Drapion 2</option>
+<option value="drapion3">Drapion 3</option>
+<option value="drapion4">Drapion 4</option>
+<option value="drifblim1">Drifblim 1</option>
+<option value="drifblim2">Drifblim 2</option>
+<option value="drifblim3">Drifblim 3</option>
+<option value="drifblim4">Drifblim 4</option>
+<option value="dugtrio1">Dugtrio 1</option>
+<option value="dugtrio2">Dugtrio 2</option>
+<option value="dugtrio3">Dugtrio 3</option>
+<option value="dugtrio4">Dugtrio 4</option>
+<option value="dusknoir1">Dusknoir 1</option>
+<option value="dusknoir2">Dusknoir 2</option>
+<option value="dusknoir3">Dusknoir 3</option>
+<option value="dusknoir4">Dusknoir 4</option>
+<option value="electivire1">Electivire 1</option>
+<option value="electivire2">Electivire 2</option>
+<option value="electivire3">Electivire 3</option>
+<option value="electivire4">Electivire 4</option>
+<option value="electrode1">Electrode 1</option>
+<option value="electrode2">Electrode 2</option>
+<option value="electrode3">Electrode 3</option>
+<option value="electrode4">Electrode 4</option>
+<option value="empoleon1">Empoleon 1</option>
+<option value="empoleon2">Empoleon 2</option>
+<option value="empoleon3">Empoleon 3</option>
+<option value="empoleon4">Empoleon 4</option>
+<option value="entei1">Entei 1</option>
+<option value="entei2">Entei 2</option>
+<option value="entei3">Entei 3</option>
+<option value="entei4">Entei 4</option>
+<option value="espeon1">Espeon 1</option>
+<option value="espeon2">Espeon 2</option>
+<option value="espeon3">Espeon 3</option>
+<option value="espeon4">Espeon 4</option>
+<option value="exeggutor1">Exeggutor 1</option>
+<option value="exeggutor2">Exeggutor 2</option>
+<option value="exeggutor3">Exeggutor 3</option>
+<option value="exeggutor4">Exeggutor 4</option>
+<option value="exploud1">Exploud 1</option>
+<option value="exploud2">Exploud 2</option>
+<option value="exploud3">Exploud 3</option>
+<option value="exploud4">Exploud 4</option>
+<option value="feraligatr1">Feraligatr 1</option>
+<option value="feraligatr2">Feraligatr 2</option>
+<option value="feraligatr3">Feraligatr 3</option>
+<option value="feraligatr4">Feraligatr 4</option>
+<option value="flareon1">Flareon 1</option>
+<option value="flareon2">Flareon 2</option>
+<option value="flareon3">Flareon 3</option>
+<option value="flareon4">Flareon 4</option>
+<option value="floatzel1">Floatzel 1</option>
+<option value="floatzel2">Floatzel 2</option>
+<option value="floatzel3">Floatzel 3</option>
+<option value="floatzel4">Floatzel 4</option>
+<option value="flygon1">Flygon 1</option>
+<option value="flygon2">Flygon 2</option>
+<option value="flygon3">Flygon 3</option>
+<option value="flygon4">Flygon 4</option>
+<option value="forretress1">Forretress 1</option>
+<option value="forretress2">Forretress 2</option>
+<option value="forretress3">Forretress 3</option>
+<option value="forretress4">Forretress 4</option>
+<option value="froslass1">Froslass 1</option>
+<option value="froslass2">Froslass 2</option>
+<option value="froslass3">Froslass 3</option>
+<option value="froslass4">Froslass 4</option>
+<option value="gallade1">Gallade 1</option>
+<option value="gallade2">Gallade 2</option>
+<option value="gallade3">Gallade 3</option>
+<option value="gallade4">Gallade 4</option>
+<option value="garchomp1">Garchomp 1</option>
+<option value="garchomp2">Garchomp 2</option>
+<option value="garchomp3">Garchomp 3</option>
+<option value="garchomp4">Garchomp 4</option>
+<option value="gardevoir1">Gardevoir 1</option>
+<option value="gardevoir2">Gardevoir 2</option>
+<option value="gardevoir3">Gardevoir 3</option>
+<option value="gardevoir4">Gardevoir 4</option>
+<option value="gastrodon1">Gastrodon 1</option>
+<option value="gastrodon2">Gastrodon 2</option>
+<option value="gastrodon3">Gastrodon 3</option>
+<option value="gastrodon4">Gastrodon 4</option>
+<option value="gengar1">Gengar 1</option>
+<option value="gengar2">Gengar 2</option>
+<option value="gengar3">Gengar 3</option>
+<option value="gengar4">Gengar 4</option>
+<option value="glaceon1">Glaceon 1</option>
+<option value="glaceon2">Glaceon 2</option>
+<option value="glaceon3">Glaceon 3</option>
+<option value="glaceon4">Glaceon 4</option>
+<option value="glalie1">Glalie 1</option>
+<option value="glalie2">Glalie 2</option>
+<option value="glalie3">Glalie 3</option>
+<option value="glalie4">Glalie 4</option>
+<option value="gliscor1">Gliscor 1</option>
+<option value="gliscor2">Gliscor 2</option>
+<option value="gliscor3">Gliscor 3</option>
+<option value="gliscor4">Gliscor 4</option>
+<option value="golduck1">Golduck 1</option>
+<option value="golduck2">Golduck 2</option>
+<option value="golduck3">Golduck 3</option>
+<option value="golduck4">Golduck 4</option>
+<option value="golem1">Golem 1</option>
+<option value="golem2">Golem 2</option>
+<option value="golem3">Golem 3</option>
+<option value="golem4">Golem 4</option>
+<option value="granbull1">Granbull 1</option>
+<option value="granbull2">Granbull 2</option>
+<option value="granbull3">Granbull 3</option>
+<option value="granbull4">Granbull 4</option>
+<option value="gyarados1">Gyarados 1</option>
+<option value="gyarados2">Gyarados 2</option>
+<option value="gyarados3">Gyarados 3</option>
+<option value="gyarados4">Gyarados 4</option>
+<option value="hariyama1">Hariyama 1</option>
+<option value="hariyama2">Hariyama 2</option>
+<option value="hariyama3">Hariyama 3</option>
+<option value="hariyama4">Hariyama 4</option>
+<option value="heatran1">Heatran 1</option>
+<option value="heatran2">Heatran 2</option>
+<option value="heatran3">Heatran 3</option>
+<option value="heatran4">Heatran 4</option>
+<option value="heracross1">Heracross 1</option>
+<option value="heracross2">Heracross 2</option>
+<option value="heracross3">Heracross 3</option>
+<option value="heracross4">Heracross 4</option>
+<option value="hippowdon1">Hippowdon 1</option>
+<option value="hippowdon2">Hippowdon 2</option>
+<option value="hippowdon3">Hippowdon 3</option>
+<option value="hippowdon4">Hippowdon 4</option>
+<option value="honchkrow1">Honchkrow 1</option>
+<option value="honchkrow2">Honchkrow 2</option>
+<option value="honchkrow3">Honchkrow 3</option>
+<option value="honchkrow4">Honchkrow 4</option>
+<option value="houndoom1">Houndoom 1</option>
+<option value="houndoom2">Houndoom 2</option>
+<option value="houndoom3">Houndoom 3</option>
+<option value="houndoom4">Houndoom 4</option>
+<option value="hypno1">Hypno 1</option>
+<option value="hypno2">Hypno 2</option>
+<option value="hypno3">Hypno 3</option>
+<option value="hypno4">Hypno 4</option>
+<option value="infernape1">Infernape 1</option>
+<option value="infernape2">Infernape 2</option>
+<option value="infernape3">Infernape 3</option>
+<option value="infernape4">Infernape 4</option>
+<option value="jolteon1">Jolteon 1</option>
+<option value="jolteon2">Jolteon 2</option>
+<option value="jolteon3">Jolteon 3</option>
+<option value="jolteon4">Jolteon 4</option>
+<option value="jynx1">Jynx 1</option>
+<option value="jynx2">Jynx 2</option>
+<option value="jynx3">Jynx 3</option>
+<option value="jynx4">Jynx 4</option>
+<option value="kangaskhan1">Kangaskhan 1</option>
+<option value="kangaskhan2">Kangaskhan 2</option>
+<option value="kangaskhan3">Kangaskhan 3</option>
+<option value="kangaskhan4">Kangaskhan 4</option>
+<option value="kingdra1">Kingdra 1</option>
+<option value="kingdra2">Kingdra 2</option>
+<option value="kingdra3">Kingdra 3</option>
+<option value="kingdra4">Kingdra 4</option>
+<option value="lanturn1">Lanturn 1</option>
+<option value="lanturn2">Lanturn 2</option>
+<option value="lanturn3">Lanturn 3</option>
+<option value="lanturn4">Lanturn 4</option>
+<option value="lapras1">Lapras 1</option>
+<option value="lapras2">Lapras 2</option>
+<option value="lapras3">Lapras 3</option>
+<option value="lapras4">Lapras 4</option>
+<option value="latias1">Latias 1</option>
+<option value="latias2">Latias 2</option>
+<option value="latias3">Latias 3</option>
+<option value="latias4">Latias 4</option>
+<option value="latios1">Latios 1</option>
+<option value="latios2">Latios 2</option>
+<option value="latios3">Latios 3</option>
+<option value="latios4">Latios 4</option>
+<option value="leafeon1">Leafeon 1</option>
+<option value="leafeon2">Leafeon 2</option>
+<option value="leafeon3">Leafeon 3</option>
+<option value="leafeon4">Leafeon 4</option>
+<option value="lickilicky1">Lickilicky 1</option>
+<option value="lickilicky2">Lickilicky 2</option>
+<option value="lickilicky3">Lickilicky 3</option>
+<option value="lickilicky4">Lickilicky 4</option>
+<option value="lopunny1">Lopunny 1</option>
+<option value="lopunny2">Lopunny 2</option>
+<option value="lopunny3">Lopunny 3</option>
+<option value="lopunny4">Lopunny 4</option>
+<option value="lucario1">Lucario 1</option>
+<option value="lucario2">Lucario 2</option>
+<option value="lucario3">Lucario 3</option>
+<option value="lucario4">Lucario 4</option>
+<option value="ludicolo1">Ludicolo 1</option>
+<option value="ludicolo2">Ludicolo 2</option>
+<option value="ludicolo3">Ludicolo 3</option>
+<option value="ludicolo4">Ludicolo 4</option>
+<option value="luxray1">Luxray 1</option>
+<option value="luxray2">Luxray 2</option>
+<option value="luxray3">Luxray 3</option>
+<option value="luxray4">Luxray 4</option>
+<option value="machamp1">Machamp 1</option>
+<option value="machamp2">Machamp 2</option>
+<option value="machamp3">Machamp 3</option>
+<option value="machamp4">Machamp 4</option>
+<option value="magmortar1">Magmortar 1</option>
+<option value="magmortar2">Magmortar 2</option>
+<option value="magmortar3">Magmortar 3</option>
+<option value="magmortar4">Magmortar 4</option>
+<option value="magnezone1">Magnezone 1</option>
+<option value="magnezone2">Magnezone 2</option>
+<option value="magnezone3">Magnezone 3</option>
+<option value="magnezone4">Magnezone 4</option>
+<option value="mamoswine1">Mamoswine 1</option>
+<option value="mamoswine2">Mamoswine 2</option>
+<option value="mamoswine3">Mamoswine 3</option>
+<option value="mamoswine4">Mamoswine 4</option>
+<option value="manectric1">Manectric 1</option>
+<option value="manectric2">Manectric 2</option>
+<option value="manectric3">Manectric 3</option>
+<option value="manectric4">Manectric 4</option>
+<option value="marowak1">Marowak 1</option>
+<option value="marowak2">Marowak 2</option>
+<option value="marowak3">Marowak 3</option>
+<option value="marowak4">Marowak 4</option>
+<option value="medicham1">Medicham 1</option>
+<option value="medicham2">Medicham 2</option>
+<option value="medicham3">Medicham 3</option>
+<option value="medicham4">Medicham 4</option>
+<option value="meganium1">Meganium 1</option>
+<option value="meganium2">Meganium 2</option>
+<option value="meganium3">Meganium 3</option>
+<option value="meganium4">Meganium 4</option>
+<option value="metagross1">Metagross 1</option>
+<option value="metagross2">Metagross 2</option>
+<option value="metagross3">Metagross 3</option>
+<option value="metagross4">Metagross 4</option>
+<option value="milotic1">Milotic 1</option>
+<option value="milotic2">Milotic 2</option>
+<option value="milotic3">Milotic 3</option>
+<option value="milotic4">Milotic 4</option>
+<option value="miltank1">Miltank 1</option>
+<option value="miltank2">Miltank 2</option>
+<option value="miltank3">Miltank 3</option>
+<option value="miltank4">Miltank 4</option>
+<option value="mismagius1">Mismagius 1</option>
+<option value="mismagius2">Mismagius 2</option>
+<option value="mismagius3">Mismagius 3</option>
+<option value="mismagius4">Mismagius 4</option>
+<option value="moltres1">Moltres 1</option>
+<option value="moltres2">Moltres 2</option>
+<option value="moltres3">Moltres 3</option>
+<option value="moltres4">Moltres 4</option>
+<option value="mrmime1">Mr. Mime 1</option>
+<option value="mrmime2">Mr. Mime 2</option>
+<option value="mrmime3">Mr. Mime 3</option>
+<option value="mrmime4">Mr. Mime 4</option>
+<option value="muk1">Muk 1</option>
+<option value="muk2">Muk 2</option>
+<option value="muk3">Muk 3</option>
+<option value="muk4">Muk 4</option>
+<option value="nidoking1">Nidoking 1</option>
+<option value="nidoking2">Nidoking 2</option>
+<option value="nidoking3">Nidoking 3</option>
+<option value="nidoking4">Nidoking 4</option>
+<option value="nidoqueen1">Nidoqueen 1</option>
+<option value="nidoqueen2">Nidoqueen 2</option>
+<option value="nidoqueen3">Nidoqueen 3</option>
+<option value="nidoqueen4">Nidoqueen 4</option>
+<option value="ninetales1">Ninetales 1</option>
+<option value="ninetales2">Ninetales 2</option>
+<option value="ninetales3">Ninetales 3</option>
+<option value="ninetales4">Ninetales 4</option>
+<option value="pinsir1">Pinsir 1</option>
+<option value="pinsir2">Pinsir 2</option>
+<option value="pinsir3">Pinsir 3</option>
+<option value="pinsir4">Pinsir 4</option>
+<option value="politoed1">Politoed 1</option>
+<option value="politoed2">Politoed 2</option>
+<option value="politoed3">Politoed 3</option>
+<option value="politoed4">Politoed 4</option>
+<option value="poliwrath1">Poliwrath 1</option>
+<option value="poliwrath2">Poliwrath 2</option>
+<option value="poliwrath3">Poliwrath 3</option>
+<option value="poliwrath4">Poliwrath 4</option>
+<option value="porygon21">Porygon2 1</option>
+<option value="porygon22">Porygon2 2</option>
+<option value="porygon23">Porygon2 3</option>
+<option value="porygon24">Porygon2 4</option>
+<option value="porygonz1">Porygon-Z 1</option>
+<option value="porygonz2">Porygon-Z 2</option>
+<option value="porygonz3">Porygon-Z 3</option>
+<option value="porygonz4">Porygon-Z 4</option>
+<option value="probopass1">Probopass 1</option>
+<option value="probopass2">Probopass 2</option>
+<option value="probopass3">Probopass 3</option>
+<option value="probopass4">Probopass 4</option>
+<option value="quagsire1">Quagsire 1</option>
+<option value="quagsire2">Quagsire 2</option>
+<option value="quagsire3">Quagsire 3</option>
+<option value="quagsire4">Quagsire 4</option>
+<option value="raichu1">Raichu 1</option>
+<option value="raichu2">Raichu 2</option>
+<option value="raichu3">Raichu 3</option>
+<option value="raichu4">Raichu 4</option>
+<option value="raikou1">Raikou 1</option>
+<option value="raikou2">Raikou 2</option>
+<option value="raikou3">Raikou 3</option>
+<option value="raikou4">Raikou 4</option>
+<option value="rampardos1">Rampardos 1</option>
+<option value="rampardos2">Rampardos 2</option>
+<option value="rampardos3">Rampardos 3</option>
+<option value="rampardos4">Rampardos 4</option>
+<option value="rapidash1">Rapidash 1</option>
+<option value="rapidash2">Rapidash 2</option>
+<option value="rapidash3">Rapidash 3</option>
+<option value="rapidash4">Rapidash 4</option>
+<option value="regice1">Regice 1</option>
+<option value="regice2">Regice 2</option>
+<option value="regice3">Regice 3</option>
+<option value="regice4">Regice 4</option>
+<option value="regigigas1">Regigigas 1</option>
+<option value="regigigas2">Regigigas 2</option>
+<option value="regigigas3">Regigigas 3</option>
+<option value="regigigas4">Regigigas 4</option>
+<option value="regirock1">Regirock 1</option>
+<option value="regirock2">Regirock 2</option>
+<option value="regirock3">Regirock 3</option>
+<option value="regirock4">Regirock 4</option>
+<option value="registeel1">Registeel 1</option>
+<option value="registeel2">Registeel 2</option>
+<option value="registeel3">Registeel 3</option>
+<option value="registeel4">Registeel 4</option>
+<option value="rhydon1">Rhydon 1</option>
+<option value="rhydon2">Rhydon 2</option>
+<option value="rhydon3">Rhydon 3</option>
+<option value="rhydon4">Rhydon 4</option>
+<option value="rhyperior1">Rhyperior 1</option>
+<option value="rhyperior2">Rhyperior 2</option>
+<option value="rhyperior3">Rhyperior 3</option>
+<option value="rhyperior4">Rhyperior 4</option>
+<option value="roserade1">Roserade 1</option>
+<option value="roserade2">Roserade 2</option>
+<option value="roserade3">Roserade 3</option>
+<option value="roserade4">Roserade 4</option>
+<option value="salamence1">Salamence 1</option>
+<option value="salamence2">Salamence 2</option>
+<option value="salamence3">Salamence 3</option>
+<option value="salamence4">Salamence 4</option>
+<option value="sceptile1">Sceptile 1</option>
+<option value="sceptile2">Sceptile 2</option>
+<option value="sceptile3">Sceptile 3</option>
+<option value="sceptile4">Sceptile 4</option>
+<option value="scizor1">Scizor 1</option>
+<option value="scizor2">Scizor 2</option>
+<option value="scizor3">Scizor 3</option>
+<option value="scizor4">Scizor 4</option>
+<option value="shiftry1">Shiftry 1</option>
+<option value="shiftry2">Shiftry 2</option>
+<option value="shiftry3">Shiftry 3</option>
+<option value="shiftry4">Shiftry 4</option>
+<option value="shuckle1">Shuckle 1</option>
+<option value="shuckle2">Shuckle 2</option>
+<option value="shuckle3">Shuckle 3</option>
+<option value="shuckle4">Shuckle 4</option>
+<option value="skarmory1">Skarmory 1</option>
+<option value="skarmory2">Skarmory 2</option>
+<option value="skarmory3">Skarmory 3</option>
+<option value="skarmory4">Skarmory 4</option>
+<option value="skuntank1">Skuntank 1</option>
+<option value="skuntank2">Skuntank 2</option>
+<option value="skuntank3">Skuntank 3</option>
+<option value="skuntank4">Skuntank 4</option>
+<option value="slaking1">Slaking 1</option>
+<option value="slaking2">Slaking 2</option>
+<option value="slaking3">Slaking 3</option>
+<option value="slaking4">Slaking 4</option>
+<option value="slowbro1">Slowbro 1</option>
+<option value="slowbro2">Slowbro 2</option>
+<option value="slowbro3">Slowbro 3</option>
+<option value="slowbro4">Slowbro 4</option>
+<option value="slowking1">Slowking 1</option>
+<option value="slowking2">Slowking 2</option>
+<option value="slowking3">Slowking 3</option>
+<option value="slowking4">Slowking 4</option>
+<option value="snorlax1">Snorlax 1</option>
+<option value="snorlax2">Snorlax 2</option>
+<option value="snorlax3">Snorlax 3</option>
+<option value="snorlax4">Snorlax 4</option>
+<option value="staraptor1">Staraptor 1</option>
+<option value="staraptor2">Staraptor 2</option>
+<option value="staraptor3">Staraptor 3</option>
+<option value="staraptor4">Staraptor 4</option>
+<option value="starmie1">Starmie 1</option>
+<option value="starmie2">Starmie 2</option>
+<option value="starmie3">Starmie 3</option>
+<option value="starmie4">Starmie 4</option>
+<option value="steelix1">Steelix 1</option>
+<option value="steelix2">Steelix 2</option>
+<option value="steelix3">Steelix 3</option>
+<option value="steelix4">Steelix 4</option>
+<option value="suicune1">Suicune 1</option>
+<option value="suicune2">Suicune 2</option>
+<option value="suicune3">Suicune 3</option>
+<option value="suicune4">Suicune 4</option>
+<option value="swampert1">Swampert 1</option>
+<option value="swampert2">Swampert 2</option>
+<option value="swampert3">Swampert 3</option>
+<option value="swampert4">Swampert 4</option>
+<option value="tangrowth1">Tangrowth 1</option>
+<option value="tangrowth2">Tangrowth 2</option>
+<option value="tangrowth3">Tangrowth 3</option>
+<option value="tangrowth4">Tangrowth 4</option>
+<option value="tauros1">Tauros 1</option>
+<option value="tauros2">Tauros 2</option>
+<option value="tauros3">Tauros 3</option>
+<option value="tauros4">Tauros 4</option>
+<option value="tentacruel1">Tentacruel 1</option>
+<option value="tentacruel2">Tentacruel 2</option>
+<option value="tentacruel3">Tentacruel 3</option>
+<option value="tentacruel4">Tentacruel 4</option>
+<option value="togekiss1">Togekiss 1</option>
+<option value="togekiss2">Togekiss 2</option>
+<option value="togekiss3">Togekiss 3</option>
+<option value="togekiss4">Togekiss 4</option>
+<option value="torterra1">Torterra 1</option>
+<option value="torterra2">Torterra 2</option>
+<option value="torterra3">Torterra 3</option>
+<option value="torterra4">Torterra 4</option>
+<option value="toxicroak1">Toxicroak 1</option>
+<option value="toxicroak2">Toxicroak 2</option>
+<option value="toxicroak3">Toxicroak 3</option>
+<option value="toxicroak4">Toxicroak 4</option>
+<option value="typhlosion1">Typhlosion 1</option>
+<option value="typhlosion2">Typhlosion 2</option>
+<option value="typhlosion3">Typhlosion 3</option>
+<option value="typhlosion4">Typhlosion 4</option>
+<option value="tyranitar1">Tyranitar 1</option>
+<option value="tyranitar2">Tyranitar 2</option>
+<option value="tyranitar3">Tyranitar 3</option>
+<option value="tyranitar4">Tyranitar 4</option>
+<option value="umbreon1">Umbreon 1</option>
+<option value="umbreon2">Umbreon 2</option>
+<option value="umbreon3">Umbreon 3</option>
+<option value="umbreon4">Umbreon 4</option>
+<option value="ursaring1">Ursaring 1</option>
+<option value="ursaring2">Ursaring 2</option>
+<option value="ursaring3">Ursaring 3</option>
+<option value="ursaring4">Ursaring 4</option>
+<option value="vaporeon1">Vaporeon 1</option>
+<option value="vaporeon2">Vaporeon 2</option>
+<option value="vaporeon3">Vaporeon 3</option>
+<option value="vaporeon4">Vaporeon 4</option>
+<option value="venusaur1">Venusaur 1</option>
+<option value="venusaur2">Venusaur 2</option>
+<option value="venusaur3">Venusaur 3</option>
+<option value="venusaur4">Venusaur 4</option>
+<option value="vespiquen1">Vespiquen 1</option>
+<option value="vespiquen2">Vespiquen 2</option>
+<option value="vespiquen3">Vespiquen 3</option>
+<option value="vespiquen4">Vespiquen 4</option>
+<option value="victreebel1">Victreebel 1</option>
+<option value="victreebel2">Victreebel 2</option>
+<option value="victreebel3">Victreebel 3</option>
+<option value="victreebel4">Victreebel 4</option>
+<option value="vileplume1">Vileplume 1</option>
+<option value="vileplume2">Vileplume 2</option>
+<option value="vileplume3">Vileplume 3</option>
+<option value="vileplume4">Vileplume 4</option>
+<option value="wailord1">Wailord 1</option>
+<option value="wailord2">Wailord 2</option>
+<option value="wailord3">Wailord 3</option>
+<option value="wailord4">Wailord 4</option>
+<option value="walrein1">Walrein 1</option>
+<option value="walrein2">Walrein 2</option>
+<option value="walrein3">Walrein 3</option>
+<option value="walrein4">Walrein 4</option>
+<option value="weavile1">Weavile 1</option>
+<option value="weavile2">Weavile 2</option>
+<option value="weavile3">Weavile 3</option>
+<option value="weavile4">Weavile 4</option>
+<option value="weezing1">Weezing 1</option>
+<option value="weezing2">Weezing 2</option>
+<option value="weezing3">Weezing 3</option>
+<option value="weezing4">Weezing 4</option>
+<option value="whiscash1">Whiscash 1</option>
+<option value="whiscash2">Whiscash 2</option>
+<option value="whiscash3">Whiscash 3</option>
+<option value="whiscash4">Whiscash 4</option>
+<option value="yanmega1">Yanmega 1</option>
+<option value="yanmega2">Yanmega 2</option>
+<option value="yanmega3">Yanmega 3</option>
+<option value="yanmega4">Yanmega 4</option>
+<option value="zapdos1">Zapdos 1</option>
+<option value="zapdos2">Zapdos 2</option>
+<option value="zapdos3">Zapdos 3</option>
+<option value="zapdos4">Zapdos 4</option>
+</select>
+
+<br />
+Type 1: <select id="type11">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+Type 2: <select id="type21">
+	<option value=""> </option>
+	<option value="17">None</option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+<br />
+
+
+Nature: <select id="nature1">
+	<option value=""> </option>
+	<option value="0">Hardy</option>
+	<option value="1">Lonely (+Atk,-Def)</option>
+	<option value="2">Adamant (+Atk,-SpA)</option>
+	<option value="3">Naughty (+Atk,-SpD)</option>
+	<option value="4">Brave (+Atk,-Spe)</option>
+	<option value="5">Docile</option>
+	<option value="6">Bold (+Def,-Atk)</option>
+	<option value="7">Impish (+Def,-SpA)</option>
+	<option value="8">Lax (+Def,-SpD)</option>
+	<option value="9">Relaxed (+Def,-Spe)</option>
+	<option value="10">Bashful</option>
+	<option value="11">Modest (+SpA,-Atk)</option>
+	<option value="12">Mild (+SpA,-Def)</option>
+	<option value="13">Rash (+SpA,-SpD)</option>
+	<option value="14">Quiet (+SpA,-Spe)</option>
+	<option value="15">Quirky</option>
+	<option value="16">Calm (+SpD,-Atk)</option>
+	<option value="17">Gentle (+SpD,-Def)</option>
+	<option value="18">Careful (+SpD,-SpA)</option>
+	<option value="19">Sassy (+SpD,-Spe)</option>
+	<option value="20">Serious</option>
+	<option value="21">Timid (+Spe,-Atk)</option>
+	<option value="22">Hasty (+Spe,-Def)</option>
+	<option value="23">Jolly (+Spe,-SpA)</option>
+	<option value="24">Naive (+Spe,-SpD)</option></select>
+
+Held item: <select id="item1">
+	<option value=""> </option>
+	<option value="1">Occa Berry</option>
+	<option value="2">Passho Berry</option>
+	<option value="3">Wacan Berry</option>
+	<option value="4">Rindo Berry</option>
+	<option value="5">Yache Berry</option>
+	<option value="6">Chople Berry</option>
+	<option value="7">Kebia Berry</option>
+	<option value="8">Shuca Berry</option>
+	<option value="9">Coba Berry</option>
+	<option value="10">Payapa Berry</option>
+	<option value="11">Tanga Berry</option>
+	<option value="12">Charti Berry</option>
+	<option value="13">Kasib Berry</option>
+	<option value="14">Haban Berry</option>
+	<option value="15">Colbur Berry</option>
+	<option value="16">Babiri Berry</option>
+	<option value="Big Root">Big Root</option>
+	<option value="Black Sludge">Black Sludge</option>
+	<option value="Brightpowder">Brightpowder</option>
+	<option value="Cheri Berry">Cheri Berry</option>
+	<option value="Chesto Berry">Chesto Berry</option>
+	<option value="Choice Band">Choice Band</option>
+	<option value="Choice Scarf">Choice Scarf</option>
+	<option value="Choice Specs">Choice Specs</option>
+	<option value="Damp Rock">Damp Rock</option>
+	<option value="Expert Belt">Expert Belt</option>
+	<option value="Focus Band">Focus Band</option>
+	<option value="Focus Sash">Focus Sash</option>
+	<option value="Grip Claw">Grip Claw</option>
+	<option value="Heat Rock">Heat Rock</option>
+	<option value="Icy Rock">Icy Rock</option>
+	<option value="Iron Ball">Iron Ball</option>
+	<option value="Kings Rock">King's Rock</option>
+	<option value="Lax Incense">Lax Incense</option>
+	<option value="Leftovers">Leftovers</option>
+	<option value="Life Orb">Life Orb</option>
+	<option value="Lum Berry">Lum Berry</option>
+	<option value="Metronome">Metronome</option>
+	<option value="Muscle Band">Muscle Band</option>
+	<option value="Mystic Water">Mystic Water</option>
+	<option value="Persim Berry">Persim Berry</option>
+	<option value="Petaya Berry">Petaya Berry</option>
+	<option value="Quick Claw">Quick Claw</option>
+	<option value="Razor Claw">Razor Claw</option>
+	<option value="Razor Fang">Razor Fang</option>
+	<option value="Salac Berry">Salac Berry</option>
+	<option value="Scope Lens">Scope Lens</option>
+	<option value="Shell Bell">Shell Bell</option>
+	<option value="Sitrus Berry">Sitrus Berry</option>
+	<option value="Thick Club">Thick Club</option>
+	<option value="Toxic Orb">Toxic Orb</option>
+	<option value="Wave Incense">Wave Incense</option>
+	<option value="White Herb">White Herb</option>
+	<option value="Wide Lens">Wide Lens</option>
+	<option value="Wise Glasses">Wise Glasses</option>
+	<option value="Zoom Lens">Zoom Lens</option>
+</select><br />
+
+Ability: <select id="ability1" onchange="damageCalc()">
+	<option value=""> </option>
+</select>
+
+Status: <select id="status1" onchange="damageCalc()">
+	<option value="none" selected="selected">None</option>
+	<option value="para">Paralysed</option>
+	<option value="burn">Burned</option>
+	<option value="poison">Poisoned</option>
+	<option value="toxic">Badly poisoned</option>
+	<option value="sleep">Asleep</option>
+	<option value="freeze">Frozen</option>
+</select><br />
+
+<table>
+<tr><td>
+HP: </td><td><input type="text" size="3" maxlength="3" name="hp1" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+</td><td>
+Atk: </td><td><input type="text" size="3" maxlength="3" name="atk1" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="atks1" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</select>
+</td><td>
+Def: </td><td><input type="text" size="3" maxlength="3" name="def1" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="defs1" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</select>
+</td></tr><tr><td>
+SpA: </td><td><input type="text" size="3" maxlength="3" name="spa1" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="spas1" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</select>
+</td><td>
+SpD: </td><td><input type="text" size="3" maxlength="3" name="spd1" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="spds1" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</select>
+</td><td>
+Spe: </td><td><input type="text" size="3" maxlength="3" name="spe1" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="spes1" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</select>
+</td></tr></table>
+
+Move 1: <input type="text" size="12" maxlength="12" name="move11">
+BP: <input type="text" size="3" maxlength="3" name="bp11">
+Type: <select id="mt11">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+
+	<select id="ps11">
+	<option value=""> </option>
+	<option value="1">Physical</option>
+	<option value="2">Special</option>
+	<option value="3">Other</option></select><br />
+
+Move 2: <input type="text" size="12" maxlength="12" name="move21">
+BP: <input type="text" size="3" maxlength="3" name="bp21">
+Type: <select id="mt21">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+	
+	<select id="ps21">
+	<option value=""> </option>
+	<option value="1">Physical</option>
+	<option value="2">Special</option>
+	<option value="3">Other</option></select><br />
+
+Move 3: <input type="text" size="12" maxlength="12" name="move31">
+BP: <input type="text" size="3" maxlength="3" name="bp31">
+Type: <select id="mt31">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+	
+	<select id="ps31">
+	<option value=""> </option>
+	<option value="1">Physical</option>
+	<option value="2">Special</option>
+	<option value="3">Other</option></select><br />
+
+Move 4: <input type="text" size="12" maxlength="12" name="move41">
+BP: <input type="text" size="3" maxlength="3" name="bp41">
+Type: <select id="mt41">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+	
+	<select id="ps41">
+	<option value=""> </option>
+	<option value="1">Physical</option>
+	<option value="2">Special</option>
+	<option value="3">Other</option></select><br />
+
+	<span id="blaze1"></span>
+</div>
+
+<div class="defmon" id="defend">
+	Reflect: <input type="checkbox" name="reflect2" onclick="damageCalc()"></input>
+	Light Screen: <input type="checkbox" name="lightscreen2" onclick="damageCalc()"></input><br />
+	
+<span class="textbf">Opp Pokemon</span>: <select id="defender" onchange="selDef(this.value)">
+	<option value=""> </option>
+	<option value="abomasnow1">Abomasnow 1</option>
+	<option value="abomasnow2">Abomasnow 2</option>
+	<option value="abomasnow3">Abomasnow 3</option>
+	<option value="abomasnow4">Abomasnow 4</option>
+	<option value="absol1">Absol 1</option>
+	<option value="absol2">Absol 2</option>
+	<option value="absol3">Absol 3</option>
+	<option value="absol4">Absol 4</option>
+	<option value="aerodactyl1">Aerodactyl 1</option>
+	<option value="aerodactyl2">Aerodactyl 2</option>
+	<option value="aerodactyl3">Aerodactyl 3</option>
+	<option value="aerodactyl4">Aerodactyl 4</option>
+	<option value="aggron1">Aggron 1</option>
+	<option value="aggron2">Aggron 2</option>
+	<option value="aggron3">Aggron 3</option>
+	<option value="aggron4">Aggron 4</option>
+	<option value="alakazam1">Alakazam 1</option>
+	<option value="alakazam2">Alakazam 2</option>
+	<option value="alakazam3">Alakazam 3</option>
+	<option value="alakazam4">Alakazam 4</option>
+	<option value="altaria1">Altaria 1</option>
+	<option value="altaria2">Altaria 2</option>
+	<option value="altaria3">Altaria 3</option>
+	<option value="altaria4">Altaria 4</option>
+	<option value="ambipom1">Ambipom 1</option>
+	<option value="ambipom2">Ambipom 2</option>
+	<option value="ambipom3">Ambipom 3</option>
+	<option value="ambipom4">Ambipom 4</option>
+	<option value="ampharos1">Ampharos 1</option>
+	<option value="ampharos2">Ampharos 2</option>
+	<option value="ampharos3">Ampharos 3</option>
+	<option value="ampharos4">Ampharos 4</option>
+	<option value="arcanine1">Arcanine 1</option>
+	<option value="arcanine2">Arcanine 2</option>
+	<option value="arcanine3">Arcanine 3</option>
+	<option value="arcanine4">Arcanine 4</option>
+	<option value="armaldo1">Armaldo 1</option>
+	<option value="armaldo2">Armaldo 2</option>
+	<option value="armaldo3">Armaldo 3</option>
+	<option value="armaldo4">Armaldo 4</option>
+	<option value="articuno1">Articuno 1</option>
+	<option value="articuno2">Articuno 2</option>
+	<option value="articuno3">Articuno 3</option>
+	<option value="articuno4">Articuno 4</option>
+	<option value="bastiodon1">Bastiodon 1</option>
+	<option value="bastiodon2">Bastiodon 2</option>
+	<option value="bastiodon3">Bastiodon 3</option>
+	<option value="bastiodon4">Bastiodon 4</option>
+	<option value="blastoise1">Blastoise 1</option>
+	<option value="blastoise2">Blastoise 2</option>
+	<option value="blastoise3">Blastoise 3</option>
+	<option value="blastoise4">Blastoise 4</option>
+	<option value="blaziken1">Blaziken 1</option>
+	<option value="blaziken2">Blaziken 2</option>
+	<option value="blaziken3">Blaziken 3</option>
+	<option value="blaziken4">Blaziken 4</option>
+	<option value="blissey1">Blissey 1</option>
+	<option value="blissey2">Blissey 2</option>
+	<option value="blissey3">Blissey 3</option>
+	<option value="blissey4">Blissey 4</option>
+	<option value="breloom1">Breloom 1</option>
+	<option value="breloom2">Breloom 2</option>
+	<option value="breloom3">Breloom 3</option>
+	<option value="breloom4">Breloom 4</option>
+	<option value="bronzong1">Bronzong 1</option>
+	<option value="bronzong2">Bronzong 2</option>
+	<option value="bronzong3">Bronzong 3</option>
+	<option value="bronzong4">Bronzong 4</option>
+	<option value="charizard1">Charizard 1</option>
+	<option value="charizard2">Charizard 2</option>
+	<option value="charizard3">Charizard 3</option>
+	<option value="charizard4">Charizard 4</option>
+	<option value="claydol1">Claydol 1</option>
+	<option value="claydol2">Claydol 2</option>
+	<option value="claydol3">Claydol 3</option>
+	<option value="claydol4">Claydol 4</option>
+	<option value="cradily1">Cradily 1</option>
+	<option value="cradily2">Cradily 2</option>
+	<option value="cradily3">Cradily 3</option>
+	<option value="cradily4">Cradily 4</option>
+	<option value="cresselia1">Cresselia 1</option>
+	<option value="cresselia2">Cresselia 2</option>
+	<option value="cresselia3">Cresselia 3</option>
+	<option value="cresselia4">Cresselia 4</option>
+	<option value="crobat1">Crobat 1</option>
+	<option value="crobat2">Crobat 2</option>
+	<option value="crobat3">Crobat 3</option>
+	<option value="crobat4">Crobat 4</option>
+	<option value="dewgong1">Dewgong 1</option>
+	<option value="dewgong2">Dewgong 2</option>
+	<option value="dewgong3">Dewgong 3</option>
+	<option value="dewgong4">Dewgong 4</option>
+	<option value="donphan1">Donphan 1</option>
+	<option value="donphan2">Donphan 2</option>
+	<option value="donphan3">Donphan 3</option>
+	<option value="donphan4">Donphan 4</option>
+	<option value="dragonite1">Dragonite 1</option>
+	<option value="dragonite2">Dragonite 2</option>
+	<option value="dragonite3">Dragonite 3</option>
+	<option value="dragonite4">Dragonite 4</option>
+	<option value="drapion1">Drapion 1</option>
+	<option value="drapion2">Drapion 2</option>
+	<option value="drapion3">Drapion 3</option>
+	<option value="drapion4">Drapion 4</option>
+	<option value="drifblim1">Drifblim 1</option>
+	<option value="drifblim2">Drifblim 2</option>
+	<option value="drifblim3">Drifblim 3</option>
+	<option value="drifblim4">Drifblim 4</option>
+	<option value="dugtrio1">Dugtrio 1</option>
+	<option value="dugtrio2">Dugtrio 2</option>
+	<option value="dugtrio3">Dugtrio 3</option>
+	<option value="dugtrio4">Dugtrio 4</option>
+	<option value="dusknoir1">Dusknoir 1</option>
+	<option value="dusknoir2">Dusknoir 2</option>
+	<option value="dusknoir3">Dusknoir 3</option>
+	<option value="dusknoir4">Dusknoir 4</option>
+	<option value="electivire1">Electivire 1</option>
+	<option value="electivire2">Electivire 2</option>
+	<option value="electivire3">Electivire 3</option>
+	<option value="electivire4">Electivire 4</option>
+	<option value="electrode1">Electrode 1</option>
+	<option value="electrode2">Electrode 2</option>
+	<option value="electrode3">Electrode 3</option>
+	<option value="electrode4">Electrode 4</option>
+	<option value="empoleon1">Empoleon 1</option>
+	<option value="empoleon2">Empoleon 2</option>
+	<option value="empoleon3">Empoleon 3</option>
+	<option value="empoleon4">Empoleon 4</option>
+	<option value="entei1">Entei 1</option>
+	<option value="entei2">Entei 2</option>
+	<option value="entei3">Entei 3</option>
+	<option value="entei4">Entei 4</option>
+	<option value="espeon1">Espeon 1</option>
+	<option value="espeon2">Espeon 2</option>
+	<option value="espeon3">Espeon 3</option>
+	<option value="espeon4">Espeon 4</option>
+	<option value="exeggutor1">Exeggutor 1</option>
+	<option value="exeggutor2">Exeggutor 2</option>
+	<option value="exeggutor3">Exeggutor 3</option>
+	<option value="exeggutor4">Exeggutor 4</option>
+	<option value="exploud1">Exploud 1</option>
+	<option value="exploud2">Exploud 2</option>
+	<option value="exploud3">Exploud 3</option>
+	<option value="exploud4">Exploud 4</option>
+	<option value="feraligatr1">Feraligatr 1</option>
+	<option value="feraligatr2">Feraligatr 2</option>
+	<option value="feraligatr3">Feraligatr 3</option>
+	<option value="feraligatr4">Feraligatr 4</option>
+	<option value="flareon1">Flareon 1</option>
+	<option value="flareon2">Flareon 2</option>
+	<option value="flareon3">Flareon 3</option>
+	<option value="flareon4">Flareon 4</option>
+	<option value="floatzel1">Floatzel 1</option>
+	<option value="floatzel2">Floatzel 2</option>
+	<option value="floatzel3">Floatzel 3</option>
+	<option value="floatzel4">Floatzel 4</option>
+	<option value="flygon1">Flygon 1</option>
+	<option value="flygon2">Flygon 2</option>
+	<option value="flygon3">Flygon 3</option>
+	<option value="flygon4">Flygon 4</option>
+	<option value="forretress1">Forretress 1</option>
+	<option value="forretress2">Forretress 2</option>
+	<option value="forretress3">Forretress 3</option>
+	<option value="forretress4">Forretress 4</option>
+	<option value="froslass1">Froslass 1</option>
+	<option value="froslass2">Froslass 2</option>
+	<option value="froslass3">Froslass 3</option>
+	<option value="froslass4">Froslass 4</option>
+	<option value="gallade1">Gallade 1</option>
+	<option value="gallade2">Gallade 2</option>
+	<option value="gallade3">Gallade 3</option>
+	<option value="gallade4">Gallade 4</option>
+	<option value="garchomp1">Garchomp 1</option>
+	<option value="garchomp2">Garchomp 2</option>
+	<option value="garchomp3">Garchomp 3</option>
+	<option value="garchomp4">Garchomp 4</option>
+	<option value="gardevoir1">Gardevoir 1</option>
+	<option value="gardevoir2">Gardevoir 2</option>
+	<option value="gardevoir3">Gardevoir 3</option>
+	<option value="gardevoir4">Gardevoir 4</option>
+	<option value="gastrodon1">Gastrodon 1</option>
+	<option value="gastrodon2">Gastrodon 2</option>
+	<option value="gastrodon3">Gastrodon 3</option>
+	<option value="gastrodon4">Gastrodon 4</option>
+	<option value="gengar1">Gengar 1</option>
+	<option value="gengar2">Gengar 2</option>
+	<option value="gengar3">Gengar 3</option>
+	<option value="gengar4">Gengar 4</option>
+	<option value="glaceon1">Glaceon 1</option>
+	<option value="glaceon2">Glaceon 2</option>
+	<option value="glaceon3">Glaceon 3</option>
+	<option value="glaceon4">Glaceon 4</option>
+	<option value="glalie1">Glalie 1</option>
+	<option value="glalie2">Glalie 2</option>
+	<option value="glalie3">Glalie 3</option>
+	<option value="glalie4">Glalie 4</option>
+	<option value="gliscor1">Gliscor 1</option>
+	<option value="gliscor2">Gliscor 2</option>
+	<option value="gliscor3">Gliscor 3</option>
+	<option value="gliscor4">Gliscor 4</option>
+	<option value="golduck1">Golduck 1</option>
+	<option value="golduck2">Golduck 2</option>
+	<option value="golduck3">Golduck 3</option>
+	<option value="golduck4">Golduck 4</option>
+	<option value="golem1">Golem 1</option>
+	<option value="golem2">Golem 2</option>
+	<option value="golem3">Golem 3</option>
+	<option value="golem4">Golem 4</option>
+	<option value="granbull1">Granbull 1</option>
+	<option value="granbull2">Granbull 2</option>
+	<option value="granbull3">Granbull 3</option>
+	<option value="granbull4">Granbull 4</option>
+	<option value="gyarados1">Gyarados 1</option>
+	<option value="gyarados2">Gyarados 2</option>
+	<option value="gyarados3">Gyarados 3</option>
+	<option value="gyarados4">Gyarados 4</option>
+	<option value="hariyama1">Hariyama 1</option>
+	<option value="hariyama2">Hariyama 2</option>
+	<option value="hariyama3">Hariyama 3</option>
+	<option value="hariyama4">Hariyama 4</option>
+	<option value="heatran1">Heatran 1</option>
+	<option value="heatran2">Heatran 2</option>
+	<option value="heatran3">Heatran 3</option>
+	<option value="heatran4">Heatran 4</option>
+	<option value="heracross1">Heracross 1</option>
+	<option value="heracross2">Heracross 2</option>
+	<option value="heracross3">Heracross 3</option>
+	<option value="heracross4">Heracross 4</option>
+	<option value="hippowdon1">Hippowdon 1</option>
+	<option value="hippowdon2">Hippowdon 2</option>
+	<option value="hippowdon3">Hippowdon 3</option>
+	<option value="hippowdon4">Hippowdon 4</option>
+	<option value="honchkrow1">Honchkrow 1</option>
+	<option value="honchkrow2">Honchkrow 2</option>
+	<option value="honchkrow3">Honchkrow 3</option>
+	<option value="honchkrow4">Honchkrow 4</option>
+	<option value="houndoom1">Houndoom 1</option>
+	<option value="houndoom2">Houndoom 2</option>
+	<option value="houndoom3">Houndoom 3</option>
+	<option value="houndoom4">Houndoom 4</option>
+	<option value="hypno1">Hypno 1</option>
+	<option value="hypno2">Hypno 2</option>
+	<option value="hypno3">Hypno 3</option>
+	<option value="hypno4">Hypno 4</option>
+	<option value="infernape1">Infernape 1</option>
+	<option value="infernape2">Infernape 2</option>
+	<option value="infernape3">Infernape 3</option>
+	<option value="infernape4">Infernape 4</option>
+	<option value="jolteon1">Jolteon 1</option>
+	<option value="jolteon2">Jolteon 2</option>
+	<option value="jolteon3">Jolteon 3</option>
+	<option value="jolteon4">Jolteon 4</option>
+	<option value="jynx1">Jynx 1</option>
+	<option value="jynx2">Jynx 2</option>
+	<option value="jynx3">Jynx 3</option>
+	<option value="jynx4">Jynx 4</option>
+	<option value="kangaskhan1">Kangaskhan 1</option>
+	<option value="kangaskhan2">Kangaskhan 2</option>
+	<option value="kangaskhan3">Kangaskhan 3</option>
+	<option value="kangaskhan4">Kangaskhan 4</option>
+	<option value="kingdra1">Kingdra 1</option>
+	<option value="kingdra2">Kingdra 2</option>
+	<option value="kingdra3">Kingdra 3</option>
+	<option value="kingdra4">Kingdra 4</option>
+	<option value="lanturn1">Lanturn 1</option>
+	<option value="lanturn2">Lanturn 2</option>
+	<option value="lanturn3">Lanturn 3</option>
+	<option value="lanturn4">Lanturn 4</option>
+	<option value="lapras1">Lapras 1</option>
+	<option value="lapras2">Lapras 2</option>
+	<option value="lapras3">Lapras 3</option>
+	<option value="lapras4">Lapras 4</option>
+	<option value="latias1">Latias 1</option>
+	<option value="latias2">Latias 2</option>
+	<option value="latias3">Latias 3</option>
+	<option value="latias4">Latias 4</option>
+	<option value="latios1">Latios 1</option>
+	<option value="latios2">Latios 2</option>
+	<option value="latios3">Latios 3</option>
+	<option value="latios4">Latios 4</option>
+	<option value="leafeon1">Leafeon 1</option>
+	<option value="leafeon2">Leafeon 2</option>
+	<option value="leafeon3">Leafeon 3</option>
+	<option value="leafeon4">Leafeon 4</option>
+	<option value="lickilicky1">Lickilicky 1</option>
+	<option value="lickilicky2">Lickilicky 2</option>
+	<option value="lickilicky3">Lickilicky 3</option>
+	<option value="lickilicky4">Lickilicky 4</option>
+	<option value="lopunny1">Lopunny 1</option>
+	<option value="lopunny2">Lopunny 2</option>
+	<option value="lopunny3">Lopunny 3</option>
+	<option value="lopunny4">Lopunny 4</option>
+	<option value="lucario1">Lucario 1</option>
+	<option value="lucario2">Lucario 2</option>
+	<option value="lucario3">Lucario 3</option>
+	<option value="lucario4">Lucario 4</option>
+	<option value="ludicolo1">Ludicolo 1</option>
+	<option value="ludicolo2">Ludicolo 2</option>
+	<option value="ludicolo3">Ludicolo 3</option>
+	<option value="ludicolo4">Ludicolo 4</option>
+	<option value="luxray1">Luxray 1</option>
+	<option value="luxray2">Luxray 2</option>
+	<option value="luxray3">Luxray 3</option>
+	<option value="luxray4">Luxray 4</option>
+	<option value="machamp1">Machamp 1</option>
+	<option value="machamp2">Machamp 2</option>
+	<option value="machamp3">Machamp 3</option>
+	<option value="machamp4">Machamp 4</option>
+	<option value="magmortar1">Magmortar 1</option>
+	<option value="magmortar2">Magmortar 2</option>
+	<option value="magmortar3">Magmortar 3</option>
+	<option value="magmortar4">Magmortar 4</option>
+	<option value="magnezone1">Magnezone 1</option>
+	<option value="magnezone2">Magnezone 2</option>
+	<option value="magnezone3">Magnezone 3</option>
+	<option value="magnezone4">Magnezone 4</option>
+	<option value="mamoswine1">Mamoswine 1</option>
+	<option value="mamoswine2">Mamoswine 2</option>
+	<option value="mamoswine3">Mamoswine 3</option>
+	<option value="mamoswine4">Mamoswine 4</option>
+	<option value="manectric1">Manectric 1</option>
+	<option value="manectric2">Manectric 2</option>
+	<option value="manectric3">Manectric 3</option>
+	<option value="manectric4">Manectric 4</option>
+	<option value="marowak1">Marowak 1</option>
+	<option value="marowak2">Marowak 2</option>
+	<option value="marowak3">Marowak 3</option>
+	<option value="marowak4">Marowak 4</option>
+	<option value="medicham1">Medicham 1</option>
+	<option value="medicham2">Medicham 2</option>
+	<option value="medicham3">Medicham 3</option>
+	<option value="medicham4">Medicham 4</option>
+	<option value="meganium1">Meganium 1</option>
+	<option value="meganium2">Meganium 2</option>
+	<option value="meganium3">Meganium 3</option>
+	<option value="meganium4">Meganium 4</option>
+	<option value="metagross1">Metagross 1</option>
+	<option value="metagross2">Metagross 2</option>
+	<option value="metagross3">Metagross 3</option>
+	<option value="metagross4">Metagross 4</option>
+	<option value="milotic1">Milotic 1</option>
+	<option value="milotic2">Milotic 2</option>
+	<option value="milotic3">Milotic 3</option>
+	<option value="milotic4">Milotic 4</option>
+	<option value="miltank1">Miltank 1</option>
+	<option value="miltank2">Miltank 2</option>
+	<option value="miltank3">Miltank 3</option>
+	<option value="miltank4">Miltank 4</option>
+	<option value="mismagius1">Mismagius 1</option>
+	<option value="mismagius2">Mismagius 2</option>
+	<option value="mismagius3">Mismagius 3</option>
+	<option value="mismagius4">Mismagius 4</option>
+	<option value="moltres1">Moltres 1</option>
+	<option value="moltres2">Moltres 2</option>
+	<option value="moltres3">Moltres 3</option>
+	<option value="moltres4">Moltres 4</option>
+	<option value="mrmime1">Mr. Mime 1</option>
+	<option value="mrmime2">Mr. Mime 2</option>
+	<option value="mrmime3">Mr. Mime 3</option>
+	<option value="mrmime4">Mr. Mime 4</option>
+	<option value="muk1">Muk 1</option>
+	<option value="muk2">Muk 2</option>
+	<option value="muk3">Muk 3</option>
+	<option value="muk4">Muk 4</option>
+	<option value="nidoking1">Nidoking 1</option>
+	<option value="nidoking2">Nidoking 2</option>
+	<option value="nidoking3">Nidoking 3</option>
+	<option value="nidoking4">Nidoking 4</option>
+	<option value="nidoqueen1">Nidoqueen 1</option>
+	<option value="nidoqueen2">Nidoqueen 2</option>
+	<option value="nidoqueen3">Nidoqueen 3</option>
+	<option value="nidoqueen4">Nidoqueen 4</option>
+	<option value="ninetales1">Ninetales 1</option>
+	<option value="ninetales2">Ninetales 2</option>
+	<option value="ninetales3">Ninetales 3</option>
+	<option value="ninetales4">Ninetales 4</option>
+	<option value="pinsir1">Pinsir 1</option>
+	<option value="pinsir2">Pinsir 2</option>
+	<option value="pinsir3">Pinsir 3</option>
+	<option value="pinsir4">Pinsir 4</option>
+	<option value="politoed1">Politoed 1</option>
+	<option value="politoed2">Politoed 2</option>
+	<option value="politoed3">Politoed 3</option>
+	<option value="politoed4">Politoed 4</option>
+	<option value="poliwrath1">Poliwrath 1</option>
+	<option value="poliwrath2">Poliwrath 2</option>
+	<option value="poliwrath3">Poliwrath 3</option>
+	<option value="poliwrath4">Poliwrath 4</option>
+	<option value="porygon21">Porygon2 1</option>
+	<option value="porygon22">Porygon2 2</option>
+	<option value="porygon23">Porygon2 3</option>
+	<option value="porygon24">Porygon2 4</option>
+	<option value="porygonz1">Porygon-Z 1</option>
+	<option value="porygonz2">Porygon-Z 2</option>
+	<option value="porygonz3">Porygon-Z 3</option>
+	<option value="porygonz4">Porygon-Z 4</option>
+	<option value="probopass1">Probopass 1</option>
+	<option value="probopass2">Probopass 2</option>
+	<option value="probopass3">Probopass 3</option>
+	<option value="probopass4">Probopass 4</option>
+	<option value="quagsire1">Quagsire 1</option>
+	<option value="quagsire2">Quagsire 2</option>
+	<option value="quagsire3">Quagsire 3</option>
+	<option value="quagsire4">Quagsire 4</option>
+	<option value="raichu1">Raichu 1</option>
+	<option value="raichu2">Raichu 2</option>
+	<option value="raichu3">Raichu 3</option>
+	<option value="raichu4">Raichu 4</option>
+	<option value="raikou1">Raikou 1</option>
+	<option value="raikou2">Raikou 2</option>
+	<option value="raikou3">Raikou 3</option>
+	<option value="raikou4">Raikou 4</option>
+	<option value="rampardos1">Rampardos 1</option>
+	<option value="rampardos2">Rampardos 2</option>
+	<option value="rampardos3">Rampardos 3</option>
+	<option value="rampardos4">Rampardos 4</option>
+	<option value="rapidash1">Rapidash 1</option>
+	<option value="rapidash2">Rapidash 2</option>
+	<option value="rapidash3">Rapidash 3</option>
+	<option value="rapidash4">Rapidash 4</option>
+	<option value="regice1">Regice 1</option>
+	<option value="regice2">Regice 2</option>
+	<option value="regice3">Regice 3</option>
+	<option value="regice4">Regice 4</option>
+	<option value="regigigas1">Regigigas 1</option>
+	<option value="regigigas2">Regigigas 2</option>
+	<option value="regigigas3">Regigigas 3</option>
+	<option value="regigigas4">Regigigas 4</option>
+	<option value="regirock1">Regirock 1</option>
+	<option value="regirock2">Regirock 2</option>
+	<option value="regirock3">Regirock 3</option>
+	<option value="regirock4">Regirock 4</option>
+	<option value="registeel1">Registeel 1</option>
+	<option value="registeel2">Registeel 2</option>
+	<option value="registeel3">Registeel 3</option>
+	<option value="registeel4">Registeel 4</option>
+	<option value="rhydon1">Rhydon 1</option>
+	<option value="rhydon2">Rhydon 2</option>
+	<option value="rhydon3">Rhydon 3</option>
+	<option value="rhydon4">Rhydon 4</option>
+	<option value="rhyperior1">Rhyperior 1</option>
+	<option value="rhyperior2">Rhyperior 2</option>
+	<option value="rhyperior3">Rhyperior 3</option>
+	<option value="rhyperior4">Rhyperior 4</option>
+	<option value="roserade1">Roserade 1</option>
+	<option value="roserade2">Roserade 2</option>
+	<option value="roserade3">Roserade 3</option>
+	<option value="roserade4">Roserade 4</option>
+	<option value="salamence1">Salamence 1</option>
+	<option value="salamence2">Salamence 2</option>
+	<option value="salamence3">Salamence 3</option>
+	<option value="salamence4">Salamence 4</option>
+	<option value="sceptile1">Sceptile 1</option>
+	<option value="sceptile2">Sceptile 2</option>
+	<option value="sceptile3">Sceptile 3</option>
+	<option value="sceptile4">Sceptile 4</option>
+	<option value="scizor1">Scizor 1</option>
+	<option value="scizor2">Scizor 2</option>
+	<option value="scizor3">Scizor 3</option>
+	<option value="scizor4">Scizor 4</option>
+	<option value="shiftry1">Shiftry 1</option>
+	<option value="shiftry2">Shiftry 2</option>
+	<option value="shiftry3">Shiftry 3</option>
+	<option value="shiftry4">Shiftry 4</option>
+	<option value="shuckle1">Shuckle 1</option>
+	<option value="shuckle2">Shuckle 2</option>
+	<option value="shuckle3">Shuckle 3</option>
+	<option value="shuckle4">Shuckle 4</option>
+	<option value="skarmory1">Skarmory 1</option>
+	<option value="skarmory2">Skarmory 2</option>
+	<option value="skarmory3">Skarmory 3</option>
+	<option value="skarmory4">Skarmory 4</option>
+	<option value="skuntank1">Skuntank 1</option>
+	<option value="skuntank2">Skuntank 2</option>
+	<option value="skuntank3">Skuntank 3</option>
+	<option value="skuntank4">Skuntank 4</option>
+	<option value="slaking1">Slaking 1</option>
+	<option value="slaking2">Slaking 2</option>
+	<option value="slaking3">Slaking 3</option>
+	<option value="slaking4">Slaking 4</option>
+	<option value="slowbro1">Slowbro 1</option>
+	<option value="slowbro2">Slowbro 2</option>
+	<option value="slowbro3">Slowbro 3</option>
+	<option value="slowbro4">Slowbro 4</option>
+	<option value="slowking1">Slowking 1</option>
+	<option value="slowking2">Slowking 2</option>
+	<option value="slowking3">Slowking 3</option>
+	<option value="slowking4">Slowking 4</option>
+	<option value="snorlax1">Snorlax 1</option>
+	<option value="snorlax2">Snorlax 2</option>
+	<option value="snorlax3">Snorlax 3</option>
+	<option value="snorlax4">Snorlax 4</option>
+	<option value="staraptor1">Staraptor 1</option>
+	<option value="staraptor2">Staraptor 2</option>
+	<option value="staraptor3">Staraptor 3</option>
+	<option value="staraptor4">Staraptor 4</option>
+	<option value="starmie1">Starmie 1</option>
+	<option value="starmie2">Starmie 2</option>
+	<option value="starmie3">Starmie 3</option>
+	<option value="starmie4">Starmie 4</option>
+	<option value="steelix1">Steelix 1</option>
+	<option value="steelix2">Steelix 2</option>
+	<option value="steelix3">Steelix 3</option>
+	<option value="steelix4">Steelix 4</option>
+	<option value="suicune1">Suicune 1</option>
+	<option value="suicune2">Suicune 2</option>
+	<option value="suicune3">Suicune 3</option>
+	<option value="suicune4">Suicune 4</option>
+	<option value="swampert1">Swampert 1</option>
+	<option value="swampert2">Swampert 2</option>
+	<option value="swampert3">Swampert 3</option>
+	<option value="swampert4">Swampert 4</option>
+	<option value="tangrowth1">Tangrowth 1</option>
+	<option value="tangrowth2">Tangrowth 2</option>
+	<option value="tangrowth3">Tangrowth 3</option>
+	<option value="tangrowth4">Tangrowth 4</option>
+	<option value="tauros1">Tauros 1</option>
+	<option value="tauros2">Tauros 2</option>
+	<option value="tauros3">Tauros 3</option>
+	<option value="tauros4">Tauros 4</option>
+	<option value="tentacruel1">Tentacruel 1</option>
+	<option value="tentacruel2">Tentacruel 2</option>
+	<option value="tentacruel3">Tentacruel 3</option>
+	<option value="tentacruel4">Tentacruel 4</option>
+	<option value="togekiss1">Togekiss 1</option>
+	<option value="togekiss2">Togekiss 2</option>
+	<option value="togekiss3">Togekiss 3</option>
+	<option value="togekiss4">Togekiss 4</option>
+	<option value="torterra1">Torterra 1</option>
+	<option value="torterra2">Torterra 2</option>
+	<option value="torterra3">Torterra 3</option>
+	<option value="torterra4">Torterra 4</option>
+	<option value="toxicroak1">Toxicroak 1</option>
+	<option value="toxicroak2">Toxicroak 2</option>
+	<option value="toxicroak3">Toxicroak 3</option>
+	<option value="toxicroak4">Toxicroak 4</option>
+	<option value="typhlosion1">Typhlosion 1</option>
+	<option value="typhlosion2">Typhlosion 2</option>
+	<option value="typhlosion3">Typhlosion 3</option>
+	<option value="typhlosion4">Typhlosion 4</option>
+	<option value="tyranitar1">Tyranitar 1</option>
+	<option value="tyranitar2">Tyranitar 2</option>
+	<option value="tyranitar3">Tyranitar 3</option>
+	<option value="tyranitar4">Tyranitar 4</option>
+	<option value="umbreon1">Umbreon 1</option>
+	<option value="umbreon2">Umbreon 2</option>
+	<option value="umbreon3">Umbreon 3</option>
+	<option value="umbreon4">Umbreon 4</option>
+	<option value="ursaring1">Ursaring 1</option>
+	<option value="ursaring2">Ursaring 2</option>
+	<option value="ursaring3">Ursaring 3</option>
+	<option value="ursaring4">Ursaring 4</option>
+	<option value="vaporeon1">Vaporeon 1</option>
+	<option value="vaporeon2">Vaporeon 2</option>
+	<option value="vaporeon3">Vaporeon 3</option>
+	<option value="vaporeon4">Vaporeon 4</option>
+	<option value="venusaur1">Venusaur 1</option>
+	<option value="venusaur2">Venusaur 2</option>
+	<option value="venusaur3">Venusaur 3</option>
+	<option value="venusaur4">Venusaur 4</option>
+	<option value="vespiquen1">Vespiquen 1</option>
+	<option value="vespiquen2">Vespiquen 2</option>
+	<option value="vespiquen3">Vespiquen 3</option>
+	<option value="vespiquen4">Vespiquen 4</option>
+	<option value="victreebel1">Victreebel 1</option>
+	<option value="victreebel2">Victreebel 2</option>
+	<option value="victreebel3">Victreebel 3</option>
+	<option value="victreebel4">Victreebel 4</option>
+	<option value="vileplume1">Vileplume 1</option>
+	<option value="vileplume2">Vileplume 2</option>
+	<option value="vileplume3">Vileplume 3</option>
+	<option value="vileplume4">Vileplume 4</option>
+	<option value="wailord1">Wailord 1</option>
+	<option value="wailord2">Wailord 2</option>
+	<option value="wailord3">Wailord 3</option>
+	<option value="wailord4">Wailord 4</option>
+	<option value="walrein1">Walrein 1</option>
+	<option value="walrein2">Walrein 2</option>
+	<option value="walrein3">Walrein 3</option>
+	<option value="walrein4">Walrein 4</option>
+	<option value="weavile1">Weavile 1</option>
+	<option value="weavile2">Weavile 2</option>
+	<option value="weavile3">Weavile 3</option>
+	<option value="weavile4">Weavile 4</option>
+	<option value="weezing1">Weezing 1</option>
+	<option value="weezing2">Weezing 2</option>
+	<option value="weezing3">Weezing 3</option>
+	<option value="weezing4">Weezing 4</option>
+	<option value="whiscash1">Whiscash 1</option>
+	<option value="whiscash2">Whiscash 2</option>
+	<option value="whiscash3">Whiscash 3</option>
+	<option value="whiscash4">Whiscash 4</option>
+	<option value="yanmega1">Yanmega 1</option>
+	<option value="yanmega2">Yanmega 2</option>
+	<option value="yanmega3">Yanmega 3</option>
+	<option value="yanmega4">Yanmega 4</option>
+	<option value="zapdos1">Zapdos 1</option>
+	<option value="zapdos2">Zapdos 2</option>
+	<option value="zapdos3">Zapdos 3</option>
+	<option value="zapdos4">Zapdos 4</option>
+</select>
+
+<br />
+Type 1: <select id="type12">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+Type 2: <select id="type22">
+	<option value=""> </option>
+	<option value="17">None</option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+<br />
+
+Nature: <select id="nature2">
+	<option value=""> </option>
+	<option value="0">Hardy</option>
+	<option value="1">Lonely (+Atk,-Def)</option>
+	<option value="2">Adamant (+Atk,-SpA)</option>
+	<option value="3">Naughty (+Atk,-SpD)</option>
+	<option value="4">Brave (+Atk,-Spe)</option>
+	<option value="5">Docile</option>
+	<option value="6">Bold (+Def,-Atk)</option>
+	<option value="7">Impish (+Def,-SpA)</option>
+	<option value="8">Lax (+Def,-SpD)</option>
+	<option value="9">Relaxed (+Def,-Spe)</option>
+	<option value="10">Bashful</option>
+	<option value="11">Modest (+SpA,-Atk)</option>
+	<option value="12">Mild (+SpA,-Def)</option>
+	<option value="13">Rash (+SpA,-SpD)</option>
+	<option value="14">Quiet (+SpA,-Spe)</option>
+	<option value="15">Quirky</option>
+	<option value="16">Calm (+SpD,-Atk)</option>
+	<option value="17">Gentle (+SpD,-Def)</option>
+	<option value="18">Careful (+SpD,-SpA)</option>
+	<option value="19">Sassy (+SpD,-Spe)</option>
+	<option value="20">Serious</option>
+	<option value="21">Timid (+Spe,-Atk)</option>
+	<option value="22">Hasty (+Spe,-Def)</option>
+	<option value="23">Jolly (+Spe,-SpA)</option>
+	<option value="24">Naive (+Spe,-SpD)</option></select>
+
+Held item: <select id="item2">
+	<option value=""> </option>
+	<option value="1">Occa Berry</option>
+	<option value="2">Passho Berry</option>
+	<option value="3">Wacan Berry</option>
+	<option value="4">Rindo Berry</option>
+	<option value="5">Yache Berry</option>
+	<option value="6">Chople Berry</option>
+	<option value="7">Kebia Berry</option>
+	<option value="8">Shuca Berry</option>
+	<option value="9">Coba Berry</option>
+	<option value="10">Payapa Berry</option>
+	<option value="11">Tanga Berry</option>
+	<option value="12">Charti Berry</option>
+	<option value="13">Kasib Berry</option>
+	<option value="14">Haban Berry</option>
+	<option value="15">Colbur Berry</option>
+	<option value="16">Babiri Berry</option>
+	<option value="Big Root">Big Root</option>
+	<option value="Black Sludge">Black Sludge</option>
+	<option value="Brightpowder">Brightpowder</option>
+	<option value="Cheri Berry">Cheri Berry</option>
+	<option value="Chesto Berry">Chesto Berry</option>
+	<option value="Choice Band">Choice Band</option>
+	<option value="Choice Scarf">Choice Scarf</option>
+	<option value="Choice Specs">Choice Specs</option>
+	<option value="Damp Rock">Damp Rock</option>
+	<option value="Expert Belt">Expert Belt</option>
+	<option value="Focus Band">Focus Band</option>
+	<option value="Focus Sash">Focus Sash</option>
+	<option value="Grip Claw">Grip Claw</option>
+	<option value="Heat Rock">Heat Rock</option>
+	<option value="Icy Rock">Icy Rock</option>
+	<option value="Iron Ball">Iron Ball</option>
+	<option value="Kings Rock">King's Rock</option>
+	<option value="Lax Incense">Lax Incense</option>
+	<option value="Leftovers">Leftovers</option>
+	<option value="Life Orb">Life Orb</option>
+	<option value="Lum Berry">Lum Berry</option>
+	<option value="Metronome">Metronome</option>
+	<option value="Muscle Band">Muscle Band</option>
+	<option value="Mystic Water">Mystic Water</option>
+	<option value="Persim Berry">Persim Berry</option>
+	<option value="Petaya Berry">Petaya Berry</option>
+	<option value="Quick Claw">Quick Claw</option>
+	<option value="Razor Claw">Razor Claw</option>
+	<option value="Razor Fang">Razor Fang</option>
+	<option value="Salac Berry">Salac Berry</option>
+	<option value="Scope Lens">Scope Lens</option>
+	<option value="Shell Bell">Shell Bell</option>
+	<option value="Sitrus Berry">Sitrus Berry</option>
+	<option value="Thick Club">Thick Club</option>
+	<option value="Toxic Orb">Toxic Orb</option>
+	<option value="Wave Incense">Wave Incense</option>
+	<option value="White Herb">White Herb</option>
+	<option value="Wide Lens">Wide Lens</option>
+	<option value="Wise Glasses">Wise Glasses</option>
+	<option value="Zoom Lens">Zoom Lens</option>
+</select><br />
+
+Ability: <select id="ability2" onchange="damageCalc()">
+	<option value=""> </option>
+</select>
+
+Status: <select id="status2" onchange="damageCalc()">
+	<option value="none" selected="selected">None</option>
+	<option value="para">Paralysed</option>
+	<option value="burn">Burned</option>
+	<option value="poison">Poisoned</option>
+	<option value="toxic">Badly poisoned</option>
+	<option value="sleep">Asleep</option>
+	<option value="freeze">Frozen</option>
+</select><br />
+
+<table>
+<tr><td>
+HP: </td><td><input type="text" size="3" maxlength="3" name="hp2" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+</td><td>
+Atk: </td><td><input type="text" size="3" maxlength="3" name="atk2" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="atks2" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</td><td>
+Def: </td><td><input type="text" size="3" maxlength="3" name="def2" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="defs2" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</select>
+</td></tr><tr><td>
+SpA: </td><td><input type="text" size="3" maxlength="3" name="spa2" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="spas2" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</select>
+</td><td>
+SpD: </td><td><input type="text" size="3" maxlength="3" name="spd2" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="spds2" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</select>
+</td><td>
+Spe: </td><td><input type="text" size="3" maxlength="3" name="spe2" onkeypress="if ((event.keyCode < 48 || event.keyCode > 57) && event.keyCode!=13) event.returnValue = false;">
+<select id="spes2" onchange="damageCalc()">
+	<option value="6p">+6</option>
+	<option value="5p">+5</option>
+	<option value="4p">+4</option>
+	<option value="3p">+3</option>
+	<option value="2p">+2</option>
+	<option value="1p">+1</option>
+	<option value="0" selected="selected">0</option>
+	<option value="1n">-1</option>
+	<option value="2n">-2</option>
+	<option value="3n">-3</option>
+	<option value="4n">-4</option>
+	<option value="5n">-5</option>
+	<option value="6n">-6</option>
+</td></tr></table>
+
+Move 1: <input type="text" size="12" maxlength="12" name="move12">
+BP: <input type="text" size="3" maxlength="3" name="bp12">
+Type: <select id="mt12">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+	
+	<select id="ps12">
+	<option value=""> </option>
+	<option value="1">Physical</option>
+	<option value="2">Special</option>
+	<option value="3">Other</option></select><br />
+
+Move 2: <input type="text" size="12" maxlength="12" name="move22">
+BP: <input type="text" size="3" maxlength="3" name="bp22">
+Type: <select id="mt22">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+	
+	<select id="ps22">
+	<option value=""> </option>
+	<option value="1">Physical</option>
+	<option value="2">Special</option>
+	<option value="3">Other</option></select><br />
+
+
+Move 3: <input type="text" size="12" maxlength="12" name="move32">
+BP: <input type="text" size="3" maxlength="3" name="bp32">
+Type: <select id="mt32">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+	
+	<select id="ps32">
+	<option value=""> </option>
+	<option value="1">Physical</option>
+	<option value="2">Special</option>
+	<option value="3">Other</option></select><br />
+
+Move 4: <input type="text" size="12" maxlength="12" name="move42">
+BP: <input type="text" size="3" maxlength="3" name="bp42">
+Type: <select id="mt42">
+	<option value=""> </option>
+	<option value="0">Normal</option>
+	<option value="1">Fire</option>
+	<option value="2">Water</option>
+	<option value="3">Electric</option>
+	<option value="4">Grass</option>
+	<option value="5">Ice</option>
+	<option value="6">Fighting</option>
+	<option value="7">Poison</option>
+	<option value="8">Ground</option>
+	<option value="9">Flying</option>
+	<option value="10">Psychic</option>
+	<option value="11">Bug</option>
+	<option value="12">Rock</option>
+	<option value="13">Ghost</option>
+	<option value="14">Dragon</option>
+	<option value="15">Dark</option>
+	<option value="16">Steel</option></select>
+	
+	<select id="ps42">
+	<option value=""> </option>
+	<option value="1">Physical</option>
+	<option value="2">Special</option>
+	<option value="3">Other</option></select><br />
+	
+	<span id="blaze2"></span>
+	
+	</form>
+</div>
+</div>
+
+<div class="out">
+	<br />
+	<span id="speeddata"></span>
+	<br />
+	<span id="atkoutput1"></span>
+	<span id="atkoutput2"></span>
+	<span id="atkoutput3"></span>
+	<span id="atkoutput4"></span>
+	<br />
+	<span id="defoutput1"></span>
+	<span id="defoutput2"></span>
+	<span id="defoutput3"></span>
+	<span id="defoutput4"></span>
+	<br />
+</div>
+
+
+<p>Steps for use:
+	<ol>
+		<li>Select your Pokemon.</li>
+		<li>Select your Pokemon's ability if there is more than one.</li>
+		<li>Select your opponent's Pokemon.</li>
+		<li>Select your opponent's Pokemon's ability if you know it.</li>
+		<li>Select field conditions such as screens, weather, and/or Trick Room.</li>
+		<li>Select stat boosts or drops, if any.</li>
+		<li>Select status conditions for you and your opponent, if any.</li>
+	</ol>
+</p>
+
+<hr />
+
+<p>Disclaimers:
+	<ul>
+		<li>As the numbers are taken from STT's Factory Search, stats displayed assume 31 IVs in each stat. The IVs of the Pokemon you have are dependent on the round you are in (1-7), and the number of times you have switched Pokemon. A more detailed description of IVs in the Factory can be found <a href="http://www.smogon.com/forums/showthread.php?t=3451171" target="blank">here</a>.</li>
+		<li>Secondary effects of moves are not yet accounted for (i.e. if it says Overheat can 2HKO Miltank, that doesn't take into account the -2 SpA effect of using Overheat the first time)</li>
+		<li>Base power, types, and stats do not change upon selection of different options for nature and moves. <span style="font-weight:bold">This is how it will be for the forseeable future.</span> This is primarily intended for Battle Factory use, and the movesets, natures, and stats of Factory Pokemon are predetermined and invariant. If you want to use this calculator for your own bred/EVed/IVed/hacked Pokemon, the damage formula will still work as long as you provide it with all the correct input, to a certain extent, so use it at your own risk.</li>
+	</ul>
+</p>
+
+<hr />
+
+<p>Credits: X-Act, Peterko, and Kaphotics for their work in elucidating the <a href="http://www.smogon.com/dp/articles/damage_formula" target="blank">complete damage calculation formula</a>; SnapperTheTwig for his <a href="http://www.snapperthetwig.com/poke/search.php" target="blank">Factory Search website</a>; and Glen, Team Rocket Elite, and Jumpman16 for providing <a href="http://www.smogon.com/forums/showthread.php?t=3451171" target="blank">statistics and input on Frontier Pokemon</a> (also check out <a href="http://www.smogon.com/forums/showthread.php?t=45802" target="blank">the thread</a> which is linked to in Glen's OP).</p>
+
+<p>For a damage calculator for competitive battling (e.g. on Pokemon Showdown!), click <a href="http://pokemonshowdown.com/damagecalc/" target="blank">here</a>.</p>
+
+<p>For a type effectiveness chart, click <a href="http://img.pokemondb.net/images/typechart.png" target="blank">here</a>.</p>
+
+<hr />
+
+<p>To implement:
+	<ul>
+		<li>Recovery and residual damage calculation (Leftovers, Black Sludge, Aqua Ring, poison/burn, sandstorm/hail). This is rather complicated and is not a top priority...</li>
+		<li>Type-boosting items and incenses, e.g. Mystic Water, Lax Incense
+		<li>Full list of choices (this is sure gonna take a long time)</li>
+		<li>Stat calculation formula (not high priority)</li>
+		<li>Changing base power and move type upon changing move (not high priority)</li>
+		<li>Multi-strike moves with 2-5 times, i.e. Bone Rush (stupid Marowak) <span style="font-size:8pt">can we just agree to not choose Marowak? please?</span></li>
+		<li>Payback and Avalanche have constant BP 60</li>
+		<li>OHKO moves have constant BP 0</li>
+		<li>Reversal and Flail have constant BP 0</li>
+		<li>Counter, Mirror Coat, and Metal Burst have constant BP 0</li>
+		<li>Brine has constant BP 65</li>
+		<li>Grass Knot has constant BP 60</li>
+	</ul>
+</p>
+
+<hr />
+
+<p>Changelog
+	<ul>
+		<li>v1.1 - 17 October 2013
+			<ul>
+				<li>I have added in calculations for IVs in the Factory, according to the following simplification:
+					<ul>
+						<li>Wave 1: 0 IVs</li>
+						<li>Wave 2: 4 IVs</li>
+						<li>Wave 3: 8 IVs</li>
+						<li>Wave 4: 14 IVs</li>
+						<li>Wave 5: 18 IVs</li>
+						<li>Wave 6: 22 IVs</li>
+						<li>Wave 7: 26 IVs</li>
+						<li>Wave 8+: 31 IVs</li>
+					</ul>
+					The rationale for this can be found at the bottom of this page.
+				</li>
+			</ul>
+		</li>
+		<li>v1.0 - 14 August 2013
+			<ul>
+				<li>All choices are done! Of course there are still some niggling issues (Grass Knot is easy to code for but time-consuming, and some others are quite difficult e.g. residual damage, entry hazards, and... uh... Marowak... -_-) but for now, the damage calculator itself is done.</li>
+				<li>Ground-type moves now deal no damage to Levitators.</li>
+			</ul>
+		</li>
+		<li>v0.8 - 10 August 2013
+			<ul>
+				<li>Added more choices</li>
+				<li>Made the div wider after viewing the page on Chrome on Windows 8...</li>
+				<li>Fixed a couple of small bugs with the super effective modifier.</li>
+				<li>Implemented Speed modifications due to Quick Feet.</li>
+				<li>Fixed the implementation of Guts such that all statuses would trigger it. (Previously it was only triggered through paralysis and burn.)</li>
+			</ul>
+		</li>
+		<li>v0.7 - 4 August 2013
+			<ul>
+				<li>Added more choices. More than two-thirds done!</li>
+				<li>Implemented Adaptability's 2x STAB bonus which I overlooked earlier.</li>
+				<li>Implemented the dependence of Weather Ball's type and power on the weather.</li>
+			</ul>
+		</li>
+		<li>v0.6 - 21 July 2013
+			<ul>
+				<li>Changed the attacker and defender input to a jQuery combobox so that one does not have to scroll down for an hour to find Zapdos.</li>
+				<li>Fixed a minor bug which is too trivial to be described here. (In short, it was a typo.)</li>
+			</ul>
+		</li>
+		<li>v0.5 - 20 July 2013
+			<ul>
+				<li>Added more choices.</li>
+				<li>A variety of effects regarding Iron Ball and Fling have been added:
+					<ul><li>If an Iron Ball is chosen as the held item, the user is now prompted as to whether it has been Flung.</li>
+						<li>Since Fling can only be used once, it is no longer displayed as the best move if it cannot OHKO an opponent.</li>
+						<li>Iron Ball now affects Speed, unless it has been Flung.</li>
+						<li>Fling returns 0 damage dealt if Iron Ball has been Flung.</li></ul></li>
+				<li>Gyro Ball BP calculation has been added. Since the BP is dependent on the user's and the opponent's speeds, the BP changes when you select a different Pokemon too.</li>
+				<li>Trick Room effects have been added</li>
+				<li>All items have been added to the list, as far as I am aware of.</li>
+			</ul>
+		</li>
+		<li>v0.41 - 16 July 2013
+			<ul>
+				<li>Development has been resumed since blocks are over!</li>
+				<li>Added more choices (this is a painful process)</li>
+			</ul>
+		</li>
+		<li>v0.4 - 2 July 2013
+			<ul>
+				<li>Proper type-reducing Berry calculations have been implemented. e.g. If Ice Punch does 40% damage to a Starly with Yache Berry, the text correctly shows that Ice Punch 2HKOs Starly after the Berry has been used. (Previously it would report that Ice Punch 3HKOs Starly.)</li>
+				<li>Layout changes, container div is now of fixed width and aligned centre.</li>
+				<li>Font size has been reduced to 11 because <span style="font-size:12pt">Arial size 12 is obnoxious and unpleasant to see.</span></li>
+				<li>Best move is now highlighted in red (user) / green (foe) instead of a wall of text appearing. (There can be cases where two or more moves are the "best", e.g. Infernape can OHKO Abomasnow (without Occa Berry) with both Close Combat or Fire Punch. In this case both moves will be highlighted)</li>
+				<li>Blaze, Torrent, Overgrow, and Swarm have been fully implemented.</li>
+				<li>Option to calculate damage without a Berry has been created. (e.g. if you decide to be weird and use Trick or Pluck on an opponent with a Berry, or the Berry is already consumed, or whatever)</li>
+				<li>Prevented Future Sight from being selected as the "best move" because only Alakazam1 uses Future Sight and it gets OHKOed by 99.99% of its opponents and hence using Future Sight would be a dumb thing to do unless you fully intend to sacrifice Alakazam</li>
+			</ul>
+		</li>
+		<li>v0.3 - 1 July 2013
+			<ul>
+				<li>Implemented full damage formula with all modifiers, sans Flash Fire, Water Absorb, and Volt Absorb</li>
+				<li>Implemented text and a separate calculation for damage against Pokemon holding type-resistant berries</li>
+			</ul>
+		</li>
+		<li>v0.2 - 30 June 2013
+			<ul>
+				<li>Implemented modifiers to Speed stat (normal modifiers and paralysis)</li>
+				<li>Implemented formula to calculate chances of OHKO/2HKO/3HKOing opponent</li>
+				<li>Implemented accurate damage formula for multi-strike moves e.g. Double Hit, Double Kick</li>
+			</ul>
+		<li>v0.1 - 29 June 2013
+			<ul>
+				<li>Completed page layout and form actions</li>
+				<li>Damage formula correctly implemented</li>
+				<li>Ability dropdown changes options when selecting different Pokemon</li>
+			</ul>
+		</li>
+	</ul>	
+</p>
+
+<hr />
+
+	<span style="font-style:italic">All questions, comments, errors, or bugs can be sent to xxx@yyy.com. (This is quite a large project and although I have tried my best to find and remove bugs I expect there to be some that I have not discovered. If you discover any, please include a brief description of the bug and how it can be recreated. Thank you!)</span>
+
+	<hr /><hr />
+	
+	<span style="font-style:italic"><span style="font-weight:bold">Footnote: IVs in the Battle Factory</span>
+		
+	<p>In Wave 1, you get 6 Set 1 Pokemon and they all have IV0.</p>
+
+	<p>In Wave 2, if you swapped 7 times, you get 5 Set 2 Pokemon with IV 4 and 1 Set 3 Pokemon with IV8.<br />
+	In Wave 2, if you swapped 6 or fewer times, you get 6 Set 2 Pokemon with IV 4.</p>
+
+	<p>In Wave 3, if you swapped 14 times, you get 4 Set 3 Pokemon with IV 8 and 2 Set 4 Pokemon with IV12.<br />
+	In Wave 3, if you swapped between 7 and 13 times, you get 5 Set 3 Pokemon with IV 8 and 1 Set 4 Pokemon with IV12.<br />
+	In Wave 3, if you swapped 6 or fewer times, you get 6 Set 3 Pokemon with IV 8.</p>
+
+	<p>In Wave 4, if you swapped 21 times, you get 3 Set 4 Pokemon with IV 12 and 3 Set 5 Pokemon with IV16.<br />
+	In Wave 4, if you swapped between 14 and 20 times, you get 4 Set 4 Pokemon with IV12 and 2 Set 5 Pokemon with IV16.<br />
+	In Wave 4, if you swapped between 7 and 13 times, you get 5 Set 4 Pokemon with IV12 and 1 Set 5 Pokemon with IV16.<br />
+	In Wave 4, if you swapped 6 or fewer times, you get 6 Set 4 Pokemon with IV 12.</p>
+
+	<p>In Wave 5, if you swapped 28 times, you will get 2 Set 5 Pokemon with IV16 and 4 Set 5 Pokemon with IV20.<br />
+	In Wave 5, if you swapped between 21 and 27 times, you will get 3 Set 5 Pokemon with IV16 and 3 Set 5 Pokemon with IV20.<br />
+	In Wave 5, if you swapped between 14 and 20 times, you will get 4 Set 5 Pokemon with IV16 and 2 Set 5 Pokemon with IV20.<br />
+	In Wave 5, if you swapped between 7 and 13 times, you will get 5 Set 5 Pokemon with IV16 and 1 Set 5 Pokemon with IV20.<br />
+	In Wave 5, if you swapped 6 or fewer times, you will get 6 Set 5 Pokemon with IV16.</p></span>
+
+</div>
+
+</body>
+</html>
