@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+<head>
+<script type="text/javascript">
+function returnthat(){
+var name = document.this.lol.value;
+var namecaps = name.charAt(0).toUpperCase() + name.slice(1);
+var name1 = name + "1";
+var name2 = name + "2";
+var name3 = name + "3";
+var name4 = name + "4";
+document.getElementById("output").innerHTML = '<xmp><option value="'+name1+'">'+namecaps+' 1</option></xmp><xmp><option value="'+name2+'">'+namecaps+' 2</option></xmp><xmp><option value="'+name3+'">'+namecaps+' 3</option></xmp><xmp><option value="'+name4+'">'+namecaps+' 4</option></xmp>';
+
+document.getElementById("output2").innerHTML = '<xmp>case "'+name1+'":'+'</xmp>'+'<xmp>case "'+name2+'":'+'</xmp>'+'<xmp>case "'+name3+'":'+'</xmp>'+'<xmp>case "'+name4+'":'+'</xmp>';
+return false;
+}
+</script>
+
+<style>
+span.whatever{
+	background-color:#006666;
+}
+</style>
+</head>
+
+
+<body>
+
+<form name="this">
+<input name="lol" type="text" onsubmit="return false">
+<input type="button" value="Submit" onclick="returnthat()">
+</form>
+<br /><br />
+<span class="whatever" id="output"></span>
+<br /><br />
+<span class="whatever" id="output2"></span>
+</body>
+
+</html>
