@@ -1,0 +1,87 @@
+body {
+	margin-left:20px;
+	font-size:11pt;
+	font-family:sans-serif;
+	line-height:150%;
+	background-color:#DDDDDD;
+}
+
+p.title {
+	font-family:sans-serif;
+	font-size:14pt;
+	font-weight:bold;
+}
+
+p.subtitle {
+	font-family:sans-serif;
+	font-size:12pt;
+	font-weight:bold;
+}
+
+p.small {
+    margin-bottom: 1px;
+}
+
+span.textbf{
+	font-weight:bold;
+}
+
+div.main{
+	height:80%;
+	width:950px;
+	margin-left:auto;
+	margin-right:auto;
+	background-color:#DDDDDD;
+}
+
+div.conditions{
+	width:100%;
+	background-color:#FFFFAA;
+	text-align:center;
+}
+
+div.atkmon{
+	width:50%;
+	float:left;
+	background-color:#FFCCCC;
+}
+
+div.defmon{
+	margin-left:50%;
+	width:50%;
+	background-color:#CCFFCC;
+}
+
+div.sub{
+	background-color:#CCCCFF;
+	filter:alpha(opacity=0);
+	opacity:0;
+}
+
+div.out{
+	background-color:#AAEEFF;
+	height:100%;
+	width:100%;
+	text-align:center;
+}
+
+span.red{
+	color:#FF0000;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+td {
+    padding: 0;
+}
+
+.ui-menu {
+	max-height: 200px;
+	overflow-y: auto;
+}
+.ui-autocomplete-input
+ {
+     width:150px;
+ }
